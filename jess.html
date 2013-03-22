@@ -1,0 +1,274 @@
+<html>
+<head>
+<title>Obsessive Jess</title>
+<script src="jquery-1.9.1.js"></script>
+<script src="underscore.js"></script>
+<script src="jquery-ui-1.10.1.custom.min.js"></script>
+<script src="http://code.createjs.com/soundjs-0.4.0.min.js"></script>
+
+<script>
+	Jess = {
+		smallest: 100,
+		increment: 24,
+		startLevel: 5,
+		level: 5,
+		win: 11,
+		timer: 20.00,
+		colours: ['red', 'tan', 'green'],
+		zindex: 1,
+
+		newGame: function() {
+			Jess.level = Jess.startLevel
+			Jess.reset();
+			var old = new Date().getTime(),
+			    elapsed = '0.0';
+			Jess.ticker = window.setInterval(function() {
+			    var time = new Date().getTime(),
+			        delta = time - old;
+			    old = time;
+			    Jess.tick(delta / 1000);
+			}, 100);
+		},
+
+		colour: function() {
+			return Jess.colours[Math.floor(Math.random() * Jess.colours.length)];
+		},
+
+		time: function() {
+			return Jess.level * 5;
+		},
+
+		createTupperware: function(count) {
+			if(count == 0) {
+				return;
+			}
+			var id = "tupperware"+count,
+			   div = $("<div id='"+id+"' class='tupperware "+Jess.colour()+"' style='"+Jess.zindex+"''></div>"),
+			  size = Jess.smallest + count * Jess.increment,
+			  area = $('.game-area');
+			Jess.zindex += 1;
+			div.draggable();
+			div.on("mousedown", function(e) {
+				$(e.currentTarget).css("z-index", Jess.zindex);
+				Jess.zindex += 1;
+			});
+			div.droppable({
+				accept: "#tupperware"+(count-1),
+				tolerance: 'fit',
+				drop: function(event, ui) {
+					var self = $(this),
+					  target = ui.draggable;
+				  	document.getElementById('drop').play();
+					target.draggable("disable");
+					target.css("left", Jess.increment/2 - 1); // minus one accounts for border
+					target.css("top",  Jess.increment/2 - 1); // minus one accounts for border
+					self.append(target);
+					self.droppable("disable");
+					self.trigger("match");
+				}
+			});
+			
+			div.css("width", size);
+			div.css("height", size);
+			
+			div.css("top", Math.floor(Math.random() * (area.height()-size*2)));
+			div.css("left", Math.floor(Math.random() * (area.width()-size*2)));
+			area.append(div);
+
+			Jess.createTupperware(count-1);
+		},
+
+		reset: function() {
+			$('.game-area').empty();
+			$('body').attr("class", "level-"+ (Jess.level - Jess.startLevel + 1));
+			Jess.createTupperware(Jess.level);
+			Jess.timer = Jess.time();
+		},
+
+		splash: function(style, sound) {
+			document.getElementById(sound).play();
+			window.clearInterval(Jess.ticker);
+			$('body').attr("class", style);
+		},
+
+		checkForWin: function() {
+			if($(".game-area > .tupperware").size() == 1) {
+				console.log("WINNER!");
+				Jess.level += 1;
+				if(Jess.level >= Jess.win) {
+					Jess.splash('win', 'clap');
+				} else {
+					document.getElementById('ascend').play();
+					Jess.reset();
+				}
+			}
+		},
+
+		checkForLose: function() {
+			if(Jess.timer <= 0) {
+				console.log("LOSER!");
+				Jess.level -= 1;
+				if(Jess.level > 1) {
+					Jess.reset();
+				} else {
+					Jess.splash('lose', 'gong')
+				}
+			}
+		},
+
+		tick: function(seconds) {
+			Jess.timer -= seconds;
+			if(Jess.timer <= 0) {
+				Jess.timer = 0;
+			}
+			$("#timer").text(Jess.timer.toFixed(2));
+			Jess.checkForLose();
+		}
+	};
+
+	$(function() {
+		$('body').on("match", Jess.checkForWin);
+		$("#splash").click(Jess.newGame);
+		Jess.newGame();
+	});
+</script>
+
+<style>
+	body {
+		width:95%;
+		height:95%;
+		position:relative;
+	}
+
+	.tupperware {
+		/*border: solid 1px #aaa;*/
+		display: inline-block;
+		position: absolute !important;
+		background-size: 100% 100%;
+	}
+
+	.tupperware.red {
+		background-image: url('red-round.png');
+	}
+
+	.tupperware.green {
+		background-image: url('green-round.png');
+	}
+
+	.tupperware.tan {
+		background-image: url('tan-round.png');
+	}
+
+	#right-head {
+		width: 300px;
+		height: 400px;
+		position: absolute;
+		right:10px;
+		top: 10px;
+		background-repeat: no-repeat;
+		z-index: 1000;
+	}
+
+	.level-1 #right-head {
+		background-image: url("level-1.jpg");
+	}
+
+	.level-2 #right-head {
+		background-image: url("level-2.jpg");
+	}
+
+	.level-3 #right-head {
+		background-image: url("level-3.jpg");
+	}
+
+	.level-4 #right-head {
+		background-image: url("level-4.jpg");
+	}
+
+	.level-5 #right-head {
+		background-image: url("level-5.jpg");
+	}
+
+	.level-6 #right-head {
+		background-image: url("level-6.jpg");
+	}
+
+	#splash {
+		position: absolute;
+		width: 600px;
+		height: 800px;
+		margin-left: -300px;
+		left: 50%;
+		background-repeat: no-repeat;
+		z-index: 1000;
+		display: none;
+	}
+
+	.win #splash {
+		background-image: url("win.jpg");
+		display: block;
+	}
+
+	.lose #splash {
+		background-image: url("lose.jpg");
+		display: block;
+	}
+
+	.game-area {
+		margin: 10px;
+		position:relative;
+		bottom: width:100%;
+		height:80%;
+		top: 10%;
+		border: 5px dotted #aaa;
+		overflow: hidden;
+	}
+
+	#timer {
+		position: absolute;
+		top:0;
+		left:50%;
+		z-index:100;
+		margin-left: -150px;
+		width: 300px;
+		height: 100px;
+		border: 2px solid #aaa;
+		background: black;
+		color: white;
+		text-align: center;
+		font-family: monospace;
+		font-size: 90px;
+	}
+
+	.instructions {
+		position:absolute;
+		bottom:0px;
+		left:10px;
+		right:10px;
+		text-align:center;
+		font-size: 30px;
+		font-family: helvetica;
+	}
+</style>
+</head>
+<body>
+	<audio id="drop">
+		<source src="drop.mp3" type="audio/mpeg" />
+	</audio>
+	<audio id="ascend">
+		<source src="ascend.mp3" type="audio/mpeg" />
+	</audio>
+	<audio id="clap">
+		<source src="clap.mp3" type="audio/mpeg" />
+	</audio>
+	<audio id="gong">
+		<source src="gong.mp3" type="audio/mpeg" />
+	</audio>
+	<div id="left-head"></div>
+	<div id="right-head"></div>
+	<div id="splash"></div>
+	<div id="timer"></div>
+	<div class="game-area"></div>
+	<div class="instructions">Oh No! Anth and Jordan Have messed up the tupperware cupboard!  Help Jess Stack them!</div>
+</body>
+</html>
